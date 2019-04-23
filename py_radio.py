@@ -71,19 +71,35 @@ def load_station_dicts(a):
     station_descs = {}
 
     # read values into dicts
-    i = 0
     for x in range (a['total']):
+        #print(a['hits'][x]['name'], a['hits'][x]['streams'], '\n')
+        try:
+            secure_shoutcast_url = a['hits'][x]['streams']['secure_shoutcast_stream']
+        except:
+            secure_shoutcast_url = None
+        try:
+            shoutcast_url = a['hits'][x]['streams']['shoutcast_stream']
+        except:
+            shoutcast_url = None
+        try:
+            secure_hls_url = a['hits'][x]['streams']['secure_hls_stream']
+        except:
+            secure_hls_url = None
         try:
             hls_url = a['hits'][x]['streams']['hls_stream']
-            if hls_url != '':
-                station_urls[i] = hls_url
-                station_names[i] = a['hits'][i]['name']
-                station_descs[i] = a['hits'][i]['description']
-                i += 1
         except:
-            continue
+            hls_url = None
+        try:
+            pls_url = a['hits'][x]['streams']['pls_stream']
+        except:
+            pls_url = None
 
-    return station_urls, station_names, station_descs, i
+        station_urls[x] = {'sec_shout' : secure_shoutcast_url, 'shout' : shoutcast_url, 'sec_hls' : secure_hls_url, 'hls' : hls_url, 'pls' : pls_url}
+        station_names[x] = a['hits'][x]['name']
+        station_descs[x] = a['hits'][x]['description']
+
+    print(x)
+    return station_urls, station_names, station_descs, x
 
 def main():
     print('----- Terminal Radio -----')
@@ -118,7 +134,7 @@ def main():
             except ValueError:
                 print('Enter a number corresponding to a station')
                 continue
-            if channel_num >= max_num or channel_num < 0:
+            if channel_num > max_num or channel_num < 0:
                 print('Enter a number corresponding to a station')
                 continue
             else:
@@ -129,7 +145,7 @@ def main():
 
         # if it is an hls stream, get metadata
         try:
-            b = requests.get(station_urls[channel_num])
+            b = requests.get(station_urls[channel_num]['hls'])
             #print('works here')
             c = b.text.split('\n')
             d = requests.get(c[2])
@@ -171,14 +187,14 @@ def main():
             continue
 
         # play stream
-        print(a['hits'][channel_num]['name'], '-', a['hits'][channel_num]['description'])
+        print(station_names[channel_num], '-', station_descs[channel_num])
         # print('stream URL:', url)
-        media = instance.media_new(station_urls[channel_num])
+        media = instance.media_new(station_urls[channel_num]['hls'])
         player.set_media(media)
         player.play()
+        time.sleep(2)
         print('(q)uit program or (s)top playback')
         while True:
-            time.sleep(.5)
             sig = sys.stdin.read(1)
             if sig == 'q':
                 print('Exiting...')
